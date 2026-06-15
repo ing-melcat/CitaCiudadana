@@ -1,0 +1,10 @@
+{
+  "name": "whatsapp-webhook-service",
+  "version": "1.0.0",
+  "description": "Servidor webhook para manejar mensajes de WhatsApp",
+  "main": "webhook.js",
+  "scripts": {
+    "start": "node webhook.js"
+  },
+  "dependencies": {}
+}

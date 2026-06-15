@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CitaCiudadana</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+    <!-- Splash -->
+
+    <div id="splashScreen">
+
+        <div class="splash-logo">
+            ❤️
+        </div>
+
+        <h1>CitaCiudadana</h1>
+
+    </div>
+
+    <!-- Menú lateral -->
+
+    <div id="sideMenu" class="side-menu">
+
+        <h2>CitaCiudadana</h2>
+
+        <button onclick="showScreen(8)">
+            Inicio
+        </button>
+
+        <button onclick="loadProfile()">
+            Perfil
+        </button>
+
+        <button onclick="showScreen(11)">
+            Agendar Cita
+        </button>
+
+        <button onclick="showScreen(12)">
+            IA Médica
+        </button>
+
+        <button onclick="toggleTheme()">
+            🌙 Tema Oscuro
+        </button>
+
+    </div>
+
+    <!-- SCREEN 1 -->
+
+    <section id="screen1" class="screen active">
+
+        <h1>CitaCiudadana</h1>
+
+        <h2>Tu trámite sin filas</h2>
+
+        <button class="main-btn" onclick="showScreen(2)">
+            Siguiente
+        </button>
+
+    </section>
+
+    <!-- SCREEN 2 -->
+
+    <section id="screen2" class="screen">
+
+        <h2>Una solución inteligente para tu salud</h2>
+
+        <button class="main-btn" onclick="showScreen(3)">
+            Siguiente
+        </button>
+
+    </section>
+
+    <!-- SCREEN 3 -->
+
+    <section id="screen3" class="screen">
+
+        <h2>Tu seguridad también nos importa</h2>
+
+        <button class="main-btn" onclick="showScreen(4)">
+            Continuar
+        </button>
+
+    </section>
+
+    <!-- BIENVENIDA -->
+
+    <section id="screen4" class="screen">
+
+        <h1>Bienvenido</h1>
+
+        <button class="main-btn" onclick="showScreen(5)">
+            Registrarse
+        </button>
+
+        <button class="main-btn" onclick="showScreen(6)">
+            Ingresar
+        </button>
+
+    </section>
+
+    <!-- REGISTRO -->
+
+    <section id="screen5" class="screen">
+
+        <h2>Crear Cuenta</h2>
+
+        <input
+            type="text"
+            id="registerName"
+            placeholder="Nombre">
+
+        <input
+            type="email"
+            id="registerEmail"
+            placeholder="Correo">
+
+        <input
+            type="password"
+            id="registerPassword"
+            placeholder="Contraseña">
+
+        <button class="main-btn"
+            onclick="registerUser()">
+
+            Crear Cuenta
+
+        </button>
+
+    </section>
+
+    <!-- LOGIN -->
+
+    <section id="screen6" class="screen">
+
+        <h2>Ingresar</h2>
+
+        <input
+            type="email"
+            id="loginEmail"
+            placeholder="Correo">
+
+        <input
+            type="password"
+            id="loginPassword"
+            placeholder="Contraseña">
+
+        <button class="main-btn"
+            onclick="loginUser()">
+
+            Entrar
+
+        </button>
+
+    </section>
+
+    <!-- CUENTA CREADA -->
+
+    <section id="screen7" class="screen">
+
+        <h1>Cuenta creada correctamente</h1>
+
+        <button class="main-btn"
+            onclick="goToMenu()">
+
+            Continuar
+
+        </button>
+
+    </section>
+
+    <!-- MENÚ PRINCIPAL -->
+
+    <section id="screen8" class="screen">
+
+        <header class="top-bar">
+
+            <button onclick="toggleMenu()">
+                ☰
+            </button>
+
+            <h2>CitaCiudadana</h2>
+
+            <div>👤</div>
+
+        </header>
+
+        <div class="welcome-card">
+
+            <h2 id="userGreeting">
+                Hola Usuario
+            </h2>
+
+        </div>
+
+        <button
+            class="appointment-btn"
+            onclick="showScreen(11)">
+
+            AGENDAR NUEVA CITA
+
+        </button>
+
+        <button
+            class="appointment-btn"
+            onclick="showScreen(12)">
+
+            CONSULTAR CON IA
+
+        </button>
+
+        <div class="card">
+
+            <h3>Próxima cita</h3>
+
+            <p id="nextAppointment">
+                Sin citas
+            </p>
+
+        </div>
+
+        <div class="card">
+
+            <h3>Historial</h3>
+
+            <ul id="historyList"></ul>
+
+        </div>
+
+    </section>
+
+    <!-- PERFIL -->
+
+    <section id="screen9" class="screen">
+
+        <h2>Perfil</h2>
+
+        <div class="avatar">
+
+            <img
+                id="profileImage"
+                src="https://via.placeholder.com/150">
+
+        </div>
+
+        <input
+            type="file"
+            id="imageInput"
+            onchange="changePhoto(event)">
+
+        <h3 id="profileName">
+            Usuario
+        </h3>
+
+        <p id="profileEmail"></p>
+
+        <button
+            class="main-btn"
+            onclick="loadProfileEditor()">
+
+            Editar Perfil
+
+        </button>
+
+    </section>
+
+    <!-- EDITAR PERFIL -->
+
+    <section id="screen10" class="screen">
+
+        <h2>Editar Perfil</h2>
+
+        <input id="editName" placeholder="Nombre">
+
+        <input id="editEmail" placeholder="Correo">
+
+        <input id="editPhone" placeholder="Teléfono">
+
+        <input id="editAddress" placeholder="Dirección">
+
+        <button
+            class="main-btn"
+            onclick="saveProfile()">
+
+            Guardar
+
+        </button>
+
+    </section>
+
+    <!-- AGENDAR -->
+
+    <section id="screen11" class="screen">
+
+        <h2>Agendar Cita</h2>
+
+        <select id="speciality">
+
+            <option>Medicina General</option>
+            <option>Cardiología</option>
+            <option>Dermatología</option>
+            <option>Pediatría</option>
+
+        </select>
+
+        <input
+            type="date"
+            id="appointmentDate">
+
+        <select id="appointmentTime">
+
+            <option>09:00 AM</option>
+            <option>10:00 AM</option>
+            <option>11:00 AM</option>
+
+        </select>
+
+        <button
+            class="main-btn"
+            onclick="saveAppointment()">
+
+            Confirmar Cita
+
+        </button>
+
+    </section>
+
+    <!-- IA -->
+
+    <section id="screen12" class="screen">
+
+        <h2>Asistente IA</h2>
+
+        <div id="chatContainer"
+             class="chat-container">
+
+        </div>
+
+        <div class="chat-input-container">
+
+            <input
+                type="text"
+                id="symptomInput"
+                placeholder="Describe tus síntomas">
+
+            <button
+                onclick="analyzeSymptoms()">
+
+                Enviar
+
+            </button>
+
+        </div>
+
+    </section>
+
+    <div id="toast"></div>
+
+    <script src="js/app.js"></script>
+
+</body>
+</html>

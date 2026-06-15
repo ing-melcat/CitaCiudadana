@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+
+webhooks-main/debug_*_log.txt
+webhooks-main/webhook_inbound_log.txt
+webhooks-main/template_log.txt
+webhooks-main/logs/*.txt
+webhooks-main/public/pdfs/
