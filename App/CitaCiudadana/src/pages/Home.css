@@ -1,0 +1,142 @@
+.profile-icon {
+  background: var(--ion-color-primary);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-right: 15px;
+}
+
+.greeting-pill {
+  display: inline-block;
+  background: white;
+  border: 1px solid #ddd;
+  color: #777;
+  font-size: 12px;
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.action-card {
+  margin: 0;
+  border-radius: 20px;
+  box-shadow: none;
+  min-height: 120px;
+}
+
+.primary-bg {
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.primary-bg h3 {
+  font-size: 15px;
+  font-weight: bold;
+  margin-top: 0;
+}
+
+.icon-bottom-right {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 28px;
+  color: var(--ion-color-success);
+  background: white;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.secondary-bg {
+  background: var(--ion-color-tertiary);
+  color: white;
+}
+
+.center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.large-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.appointment-card {
+  margin: 0 0 15px 0;
+  border-radius: 15px;
+  box-shadow: none;
+  border: 1px solid #eee;
+}
+
+.appointment-card.highlight {
+  border: 2px solid var(--ion-color-success);
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.time {
+  font-weight: bold;
+  color: var(--ion-text-color, #000);
+  margin: 10px 0;
+}
+
+.pill-label {
+  background: var(--ion-color-light);
+  color: var(--ion-color-medium);
+  text-align: center;
+  padding: 10px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.emergency-btn {
+  width: 100%;
+  padding: 15px;
+  background: #ffebee;
+  color: #d32f2f;
+  border: none;
+  border-radius: 15px;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.emoji {
+  font-size: 24px;
+}
+
+.custom-tab-bar {
+  --background: #ffffff;
+  border-top: 1px solid #eee;
+  padding-bottom: env(safe-area-inset-bottom);
+}
