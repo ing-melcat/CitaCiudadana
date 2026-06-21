@@ -1,127 +1,58 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Leyito-Reyes/CitaCiudadana_Completo/main/App/CitaCiudadana/public/favicon.png" alt="CitaCiudadana Logo" width="120" />
-  <h1>Cita Ciudadana</h1>
-  <p><strong>Plataforma integral para agendamiento de citas médicas e interacción ciudadana.</strong></p>
+# 🏥 CitaCiudadana Beta Oficial
 
-  <!-- Badges -->
-  <img src="https://img.shields.io/badge/Ionic-3880FF?style=for-the-badge&logo=ionic&logoColor=white" alt="Ionic" />
-  <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
-  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
-  <img src="https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp API" />
-  <img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase" />
-</div>
+CitaCiudadana es una aplicación diseñada para facilitar la agenda de citas médicas en sistemas de salud pública, eliminando filas y tiempos de espera mediante Inteligencia Artificial.
 
-<br />
+## 🛠️ Stack Tecnológico
+* **Frontend:** React 19 + TypeScript + Vite
+* **UI/UX:** Vanilla CSS, Framer Motion (animaciones fluidas, glassmorphism)
+* **Empaquetado Móvil:** Ionic Capacitor v8
+* **Backend:** Firebase (Google Auth + Firestore)
 
-## 📖 Descripción del Proyecto
+## 🚀 Estado Actual del Proyecto (Lo que llevamos hasta ahora)
+La aplicación ha pasado por una intensa fase de "pulido" y refactorización. Aquí está el resumen exacto de dónde nos quedamos para que puedas retomar el proyecto sin perder el hilo:
 
-**Cita Ciudadana** es una solución tecnológica moderna que facilita el proceso de agendamiento de citas médicas. El ecosistema está compuesto por dos pilares fundamentales:
-1. **Aplicación Móvil (Frontend):** Desarrollada con Ionic, React y Capacitor. Ofrece una interfaz moderna, fluida y con micro-interacciones diseñadas para una experiencia de usuario (UX) premium.
-2. **Bot de WhatsApp (Backend):** Servidor Node.js integrado con la Cloud API de Meta, que permite a los usuarios agendar citas directamente desde un chat de WhatsApp de forma automatizada.
+### 1. Motor Heurístico Inteligente (Completado)
+* **Ubicación:** `src/hooks/useHeuristics.ts`
+* Ya no está harcodeado en el `MainApp.tsx`. Ahora es un *Custom Hook* que procesa los síntomas del paciente usando Expresiones Regulares (RegEx) para detectar palabras clave y asignar un peso.
+* Soporta **10 especialidades médicas** (Cardiología, Dermatología, Odontología, Psicología, etc.).
 
----
+### 2. Pantalla de Agendar Cita (ScheduleScreen) (Completado)
+* **Ubicación:** `src/components/screens/ScheduleScreen.tsx`
+* **Calendario Dinámico:** Calcula automáticamente los días y meses (ya no está fijo en "Octubre 2025"). Puedes viajar al futuro y al pasado.
+* **Bloques de Hora:** Los pacientes ahora pueden elegir un bloque de hora exacto (ej. 08:00 AM, 03:00 PM) junto con el día.
+* **Animaciones Premium:** Todo el calendario cuenta con efectos *bounce* y feedback visual impulsado por `framer-motion`.
 
-## ✨ Características Principales
+### 3. Reprogramación de Citas en Firestore (Completado)
+* **Ubicación:** `saveAppointment` dentro de `MainApp.tsx`
+* En lugar de borrar y crear nuevas citas, agregamos la capacidad de editar la fecha/hora conservando la información anterior del paciente. Esto se logra enviando el comando `{ merge: true }` a Firebase usando un `editingApptId`.
 
-### 📱 Frontend (App)
-- **UI/UX Moderna:** Interfaz minimalista y modular con animaciones fluidas (Slide Up Fade, escalado en botones) y unificación tipográfica.
-- **Geolocalización:** Integración de mapas interactivos embebidos para visualizar hospitales/clínicas cercanos, junto con accesos directos a la navegación (Google Maps).
-- **Gestión de Citas:** Módulo completo para explorar especialistas, ver disponibilidad y programar citas.
-- **Autenticación:** Soporte para inicio de sesión seguro, incluyendo Google Auth.
+### 4. Modularización Segura
+* Empezamos a partir el archivo gigantesco `MainApp.tsx` en componentes más pequeños dentro de la carpeta `src/components/screens/`.
+* Ya están extraídas: `IntroScreens`, `TermsScreen`, `PrivacyScreen`, `SupportScreen` y `ScheduleScreen`.
+* **Regla de Oro:** Al extraer componentes, **jamás** rompemos el diseño CSS o las clases existentes.
 
-### 🤖 Backend (Bot de WhatsApp)
-- **Automatización de Mensajería:** Recepción y envío de mensajes automatizados utilizando plantillas de WhatsApp.
-- **Webhooks Seguros:** Verificación de tokens y seguridad robusta para la comunicación bidireccional con Meta.
-
----
-
-## 🏗️ Arquitectura del Repositorio
-
-El proyecto se divide en dos directorios principales:
-
-```text
-CitaCiudadana_Completo/
-├── App/CitaCiudadana/     # Código fuente de la App Móvil (Ionic/React)
-└── webhooks-main/         # Código fuente del Backend y Bot de WhatsApp (Node.js)
-```
+### 5. Accesibilidad (a11y) y Seguridad (Completado)
+* La aplicación ya cuenta con atributos `aria-label`, `role` y `tabIndex` para usuarios con debilidad visual en Android.
+* Eliminamos los tokens expuestos en código plano (ahora usa Variables de Entorno `.env`).
 
 ---
 
-## 🚀 Guía de Instalación y Uso
+## 📝 Próximos Pasos (Para cuando llegues a la Uni)
+Cuando retomes el proyecto desde otra terminal, aquí tienes la ruta sugerida de lo que falta por pulir:
 
-### 1. Requisitos Previos
-- [Node.js](https://nodejs.org/) (v16+)
-- [npm](https://www.npmjs.com/) o yarn
-- Cuenta de [Ngrok](https://ngrok.com/) o [Localtunnel](https://theboroer.github.io/localtunnel-www/)
-- Cuenta en [Meta for Developers](https://developers.facebook.com/) con la API de WhatsApp Cloud configurada.
-
----
-
-### 2. Configurar y Activar el Bot de WhatsApp (Backend)
-
-El bot necesita ejecutarse localmente y exponerse a internet para que Meta pueda enviar los eventos (webhooks).
-
-#### Paso 1: Iniciar el servidor local
-```bash
-cd webhooks-main
-# Copia el archivo de ejemplo para configurar tus variables de entorno
-cp .env.example .env
-
-# Instala las dependencias y levanta el servidor
-npm install
-node webhook.js
-```
-El servidor Node.js comenzará a escuchar en el puerto **3000**.
-
-#### Paso 2: Exponer el puerto al exterior
-Abre una nueva terminal e inicia Ngrok utilizando tu dominio reservado:
-```bash
-ngrok http --url=tu-dominio.ngrok-free.dev 3000
-```
-*(Si prefieres usar localtunnel, ejecuta: `lt --port 3000 --subdomain tu-subdominio`)*
-
-#### Paso 3: Configurar Meta Developers
-1. Dirígete a tu panel de **Meta for Developers** > Configuración de WhatsApp > Configuración.
-2. En la sección **Webhook**, haz clic en *Editar*.
-3. En **URL de devolución de llamada**, ingresa la URL de tu túnel seguida de `/webhook` (Ej. `https://tu-dominio.ngrok-free.dev/webhook`).
-4. En **Token de verificación**, ingresa el mismo valor que configuraste en tu variable `VERIFY_TOKEN` dentro del archivo `.env`.
-5. Haz clic en Verificar y guardar.
-
-> ⚠️ **Nota:** Si detienes Ngrok o reinicias tu equipo, deberás volver a ejecutar los pasos 1 y 2 para que el bot siga recibiendo mensajes.
+1. **Continuar Modularizando:** Falta extraer las pantallas de Autenticación (Login, Registro, Recuperar Contraseña) y las pantallas del Dashboard (Menú lateral, Chat de emergencias).
+2. **Contexto Global (React Context / Zustand):** Para terminar la modularización, habrá que sacar los estados (`useState` como el `darkMode`, `language`, `profileData`) de `MainApp.tsx` hacia un `AppContext` para evitar pasar tantas *props* a los componentes.
+3. **Conectar ChatGPT/n8n al Chat de Emergencias:** La pantalla 12 (`screen12`) tiene la interfaz de chat lista, falta inyectarle la API de OpenAI.
 
 ---
 
-### 3. Ejecutar la App Móvil (Frontend)
+## 💻 Comandos Útiles
+* **Levantar servidor local:** `npm run dev`
+* **Compilar APK de prueba:** 
+  ```bash
+  npm run build
+  npx cap sync android
+  cd android && ./gradlew assembleDebug
+  ```
 
-Para correr la aplicación web localmente en modo desarrollo:
-
-```bash
-cd App/CitaCiudadana
-npm install
-npm run dev
-```
-
-#### Compilación de APK (Android)
-Si deseas compilar la aplicación para dispositivos Android:
-
-```bash
-# Construir los assets para producción
-npm run build
-
-# Sincronizar con el proyecto de Capacitor
-npx cap sync android
-
-# Generar el APK en modo Debug
-cd android
-./gradlew assembleDebug
-```
-El APK generado estará disponible en la ruta:
-`App/CitaCiudadana/android/app/build/outputs/apk/debug/app-debug.apk`
-
----
-
-## 🤝 Contribuciones
-
-Las solicitudes de extracción (Pull Requests) son bienvenidas. Para cambios importantes, abre un "Issue" primero para discutir qué te gustaría cambiar.
-
-Asegúrate de actualizar las pruebas según corresponda.
+> **Nota para IAs:** Revisa el archivo `.agents/AGENTS.md` para las directrices estrictas de este entorno de desarrollo.
