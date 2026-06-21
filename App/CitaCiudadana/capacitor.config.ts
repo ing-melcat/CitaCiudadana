@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'Com.citaciudadana',
-  appName: 'CitaCiudadana',
+  appName: 'CitaCiudadana_Beta',
   webDir: 'dist',
   plugins: {
     GoogleAuth: {

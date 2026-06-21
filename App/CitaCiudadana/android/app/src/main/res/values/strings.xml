@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">CitaCiudadana</string>
-    <string name="title_activity_main">CitaCiudadana</string>
+    <string name="app_name">CitaCiudadana_Beta</string>
+    <string name="title_activity_main">CitaCiudadana_Beta</string>
     <string name="package_name">Com.citaciudadana</string>
     <string name="custom_url_scheme">Com.citaciudadana</string>
     <string name="server_client_id">478435404426-asgtqjj6l4co3kvh63u1n85uhbvl4cl7.apps.googleusercontent.com</string>
