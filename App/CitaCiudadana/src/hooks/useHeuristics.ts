@@ -36,7 +36,7 @@ export const useHeuristics = (symptoms: string) => {
       let score = 0;
       rule.keywords.forEach(kw => {
         // Use word boundary regex for more accurate matching when possible
-        const regex = new RegExp(\`\\\\b\${kw}\\\\b\`, 'i');
+        const regex = new RegExp(`\\b${kw}\\b`, 'i');
         if (regex.test(text) || text.includes(kw)) {
           score += rule.weight;
         }

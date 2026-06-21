@@ -310,7 +310,7 @@ const MainApp: React.FC = () => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': \`Bearer ${import.meta.env.VITE_WEBHOOK_TOKEN || 'citaciudadana2024'}\`,
+          'Authorization': `Bearer ${import.meta.env.VITE_WEBHOOK_TOKEN || 'citaciudadana2024'}`,
           'x-token': import.meta.env.VITE_WEBHOOK_TOKEN || 'citaciudadana2024',
           'ngrok-skip-browser-warning': 'true'
         },
