@@ -7,6 +7,12 @@ import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, deleteD
 import Swal from 'sweetalert2';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
+import { IntroScreens } from '../components/screens/IntroScreens';
+import TermsScreen from '../components/screens/TermsScreen';
+import PrivacyScreen from '../components/screens/PrivacyScreen';
+import SupportScreen from '../components/screens/SupportScreen';
+import { useHeuristics } from '../hooks/useHeuristics';
+
 const MainApp: React.FC = () => {
   useEffect(() => {
     GoogleAuth.initialize({
@@ -25,11 +31,11 @@ const MainApp: React.FC = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [suggestedSpecialty, setSuggestedSpecialty] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [symptoms, setSymptoms] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [editingApptId, setEditingApptId] = useState<string | null>(null);
 
   // Profile states
   const [profileData, setProfileData] = useState({
@@ -103,37 +109,7 @@ const MainApp: React.FC = () => {
     return () => unsubscribe();
   }, [screen]);
 
-  // Heuristic diagnosis engine
-  useEffect(() => {
-    if (!symptoms) {
-      setSuggestedSpecialty('');
-      return;
-    }
-    const text = symptoms.toLowerCase();
-    let bestMatch = '';
-    let maxWeight = 0;
-
-    const rules = [
-      { specialty: 'Odontologo', keywords: ['diente', 'muela', 'encia', 'dental', 'caries', 'dolor de muela'], weight: 2 },
-      { specialty: 'Psicologo', keywords: ['triste', 'ansiedad', 'depresion', 'estres', 'dormir', 'angustia', 'panico'], weight: 2 },
-      { specialty: 'Pediatra', keywords: ['niño', 'bebe', 'hijo', 'fiebre niño', 'vacuna', 'pediatria'], weight: 2 },
-      { specialty: 'Oculista', keywords: ['ojo', 'vista', 'lentes', 'borroso', 'ceguera', 'ver mal', 'lagañas'], weight: 2 },
-      { specialty: 'Medico General', keywords: ['fiebre', 'dolor de cabeza', 'gripe', 'tos', 'cuerpo cortado', 'malestar', 'nauseas', 'mareo'], weight: 1 }
-    ];
-
-    rules.forEach(rule => {
-      let score = 0;
-      rule.keywords.forEach(kw => {
-        if (text.includes(kw)) score += rule.weight;
-      });
-      if (score > maxWeight) {
-        maxWeight = score;
-        bestMatch = rule.specialty;
-      }
-    });
-
-    setSuggestedSpecialty(bestMatch);
-  }, [symptoms]);
+  const { suggestedSpecialty } = useHeuristics(symptoms);
 
   const handleTogglePassword = (id: string) => {
     setPasswordVisible(!passwordVisible);
@@ -244,15 +220,25 @@ const MainApp: React.FC = () => {
       return;
     }
     try {
-      await addDoc(collection(db, "appointments"), {
-        userId: currentUser.uid,
-        symptoms: symptoms,
-        date: selectedDate,
-        doctor: "Dr. Asignado", // Placeholder
-        createdAt: new Date()
-      });
+      if (editingApptId) {
+        await setDoc(doc(db, "appointments", editingApptId), {
+          symptoms: symptoms,
+          date: selectedDate,
+          updatedAt: new Date()
+        }, { merge: true });
+        Swal.fire({ title: '¡Éxito!', text: 'Tu cita ha sido reprogramada.', icon: 'success', confirmButtonColor: '#326789' });
+      } else {
+        await addDoc(collection(db, "appointments"), {
+          userId: currentUser.uid,
+          symptoms: symptoms,
+          date: selectedDate,
+          doctor: "Dr. Asignado", // Placeholder
+          createdAt: new Date()
+        });
+      }
       setSymptoms('');
       setSelectedDate('');
+      setEditingApptId(null);
       setScreen(16); // Confirmation screen
     } catch (e) {
       console.error("Error al guardar cita: ", e);
@@ -299,6 +285,13 @@ const MainApp: React.FC = () => {
     });
   };
 
+  const handleEditAppointment = (appt: any) => {
+    setEditingApptId(appt.id);
+    setSymptoms(appt.symptoms);
+    setSelectedDate(appt.date);
+    setScreen(11); // Send them to schedule screen
+  };
+
   useEffect(() => {
     if (screen === 13 || screen === 8) {
       loadAppointments();
@@ -317,8 +310,8 @@ const MainApp: React.FC = () => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer citaciudadana2024`,
-          'x-token': 'citaciudadana2024',
+          'Authorization': \`Bearer ${import.meta.env.VITE_WEBHOOK_TOKEN || 'citaciudadana2024'}\`,
+          'x-token': import.meta.env.VITE_WEBHOOK_TOKEN || 'citaciudadana2024',
           'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({ message: userMessage, userId: currentUser?.uid || 'anonymous' })
@@ -378,7 +371,7 @@ const MainApp: React.FC = () => {
                 <div className="dot" style={{'background': 'white', 'border': '2px solid #ccc', 'width': '10px', 'height': '10px'}}></div>
                 <div className="dot" style={{'background': 'white', 'border': '2px solid #ccc', 'width': '10px', 'height': '10px'}}></div>
             </div>
-            <button className="main-btn" onClick={() => { setScreen(2) }} style={{'width': 'auto', 'padding': '8px 25px', 'borderRadius': '20px', 'background': '#326789', 'fontSize': '12px', 'fontWeight': '500'}}>NEXT</button>
+            <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { setScreen(2) }} style={{'width': 'auto', 'padding': '8px 25px', 'borderRadius': '20px', 'background': '#326789', 'fontSize': '12px', 'fontWeight': '500'}}>NEXT</button>
         </div>
     </section>
   )}
@@ -410,7 +403,7 @@ const MainApp: React.FC = () => {
                 <div className="dot active" style={{'background': '#326789', 'width': '10px', 'height': '10px'}}></div>
                 <div className="dot" style={{'background': 'white', 'border': '2px solid #ccc', 'width': '10px', 'height': '10px'}}></div>
             </div>
-            <button className="main-btn" onClick={() => { setScreen(3) }} style={{'width': 'auto', 'padding': '8px 25px', 'borderRadius': '20px', 'background': '#326789', 'fontSize': '12px', 'fontWeight': '500'}}>NEXT</button>
+            <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { setScreen(3) }} style={{'width': 'auto', 'padding': '8px 25px', 'borderRadius': '20px', 'background': '#326789', 'fontSize': '12px', 'fontWeight': '500'}}>NEXT</button>
         </div>
     </section>
   )}
@@ -442,7 +435,7 @@ const MainApp: React.FC = () => {
                 <div className="dot" style={{'background': 'white', 'border': '2px solid #ccc', 'width': '10px', 'height': '10px'}}></div>
                 <div className="dot active" style={{'background': '#326789', 'width': '10px', 'height': '10px'}}></div>
             </div>
-            <button className="main-btn" onClick={() => { setScreen(4) }} style={{'width': 'auto', 'padding': '8px 25px', 'borderRadius': '20px', 'background': '#326789', 'fontSize': '12px', 'fontWeight': '500'}}>NEXT</button>
+            <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { setScreen(4) }} style={{'width': 'auto', 'padding': '8px 25px', 'borderRadius': '20px', 'background': '#326789', 'fontSize': '12px', 'fontWeight': '500'}}>NEXT</button>
         </div>
     </section>
   )}
@@ -452,8 +445,8 @@ const MainApp: React.FC = () => {
     <section id="screen4" className="screen">
         <img src="images/heart.png" style={{'width': '160px', 'height': '160px', 'objectFit': 'contain', 'marginBottom': '10px', 'mixBlendMode': 'multiply'}} />
         <h1 style={{'color': '#326789'}}>Bienvenido</h1>
-        <button className="main-btn" onClick={() => { setScreen(5) }}>REGISTRATE</button>
-        <button className="main-btn" onClick={() => { setScreen(6) }}>INGRESA</button>
+        <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { setScreen(5) }}>REGISTRATE</button>
+        <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { setScreen(6) }}>INGRESA</button>
         <div style={{'fontSize': '12px', 'color': '#888', 'margin': '15px 0'}}>o</div>
         <button className="google-btn" onClick={() => { handleGoogleLogin() }}>
             <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" /> CONTINUAR CON GOOGLE
@@ -491,10 +484,10 @@ const MainApp: React.FC = () => {
             </label>
         </div>
 
-        <button className="main-btn" onClick={() => { handleRegister() }} style={{'marginTop': '20px'}}>Entrar</button>
+        <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { handleRegister() }} style={{'marginTop': '20px'}}>Entrar</button>
         
         <div className="bottom-controls">
-            <button className="back-btn" onClick={() => { setScreen(4) }}>BACK</button>
+            <button className="back-btn" aria-label="Volver" onClick={() => { setScreen(4) }}>BACK</button>
         </div>
     </section>
   )}
@@ -515,10 +508,10 @@ const MainApp: React.FC = () => {
             </span>
         </div>
         
-        <button className="main-btn" onClick={() => { handleLogin() }} style={{'marginTop': '30px'}}>Entrar</button>
+        <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { handleLogin() }} style={{'marginTop': '30px'}}>Entrar</button>
         
         <div className="bottom-controls">
-            <button className="back-btn" onClick={() => { setScreen(4) }}>BACK</button>
+            <button className="back-btn" aria-label="Volver" onClick={() => { setScreen(4) }}>BACK</button>
         </div>
     </section>
   )}
@@ -531,10 +524,10 @@ const MainApp: React.FC = () => {
         </div>
         <h2 className="page-title">BIENVENIDO</h2>
         <p style={{'fontWeight': '500', 'fontSize': '14px', 'color': '#555'}}>Su cuenta fue creada<br />correctamente</p>
-        <button className="main-btn" onClick={() => { handleGoToMenu() }} style={{'marginTop': '20px'}}>Continuar</button>
+        <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { handleGoToMenu() }} style={{'marginTop': '20px'}}>Continuar</button>
         
         <div className="bottom-controls">
-            <button className="back-btn" onClick={() => { setScreen(4) }}>BACK</button>
+            <button className="back-btn" aria-label="Volver" onClick={() => { setScreen(4) }}>BACK</button>
         </div>
     </section>
   )}
@@ -543,7 +536,7 @@ const MainApp: React.FC = () => {
     {screen === 8 && (
     <section id="screen8" className="screen" style={{'padding': '0', 'background': '#ffffff'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -552,7 +545,7 @@ const MainApp: React.FC = () => {
                 </div>
                 <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
             </div>
-            <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+            <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
         </header>
@@ -565,7 +558,7 @@ const MainApp: React.FC = () => {
             </div>
             
             <div className="header-actions" style={{'marginTop': '10px'}}>
-                <div className="card-agendar" onClick={() => { setScreen(11) }} style={{'borderRadius': '20px', 'background': '#4f88a3', 'boxShadow': 'none'}}>
+                <div className="card-agendar" role="button" tabIndex={0} aria-label="Agendar nueva cita" onClick={() => { setScreen(11) }} style={{'borderRadius': '20px', 'background': '#4f88a3', 'boxShadow': 'none'}}>
                     <div style={{'textAlign': 'left'}}>
                         <h3 style={{'fontSize': '13px', 'fontWeight': '500'}}>AGENDAR NUEVA</h3>
                         <h3 style={{'fontSize': '13px', 'fontWeight': '500'}}>CITA</h3>
@@ -577,7 +570,7 @@ const MainApp: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="card-mis-citas" onClick={() => { setScreen(13) }} style={{'borderRadius': '20px', 'background': '#8ab6c6', 'boxShadow': 'none'}}>
+                <div className="card-mis-citas" role="button" tabIndex={0} aria-label="Mis citas" onClick={() => { setScreen(13) }} style={{'borderRadius': '20px', 'background': '#8ab6c6', 'boxShadow': 'none'}}>
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14h6"></path><path d="M9 18h6"></path><path d="M9 10h6"></path></svg>
                     <div style={{'marginTop': '8px', 'fontSize': '11px'}}>MIS CITAS</div>
                 </div>
@@ -597,7 +590,7 @@ const MainApp: React.FC = () => {
                 </div>
             )}
             
-            <button className="emergencia-btn" onClick={() => { setScreen(12) }} style={{'width': '100%', 'marginTop': '20px', 'display': 'flex', 'justifyContent': 'center'}}>
+            <button className="emergencia-btn" aria-label="Botón de Emergencia" onClick={() => { setScreen(12) }} style={{'width': '100%', 'marginTop': '20px', 'display': 'flex', 'justifyContent': 'center'}}>
                 TIENES UNA EMERGENCIA <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path><circle cx="17" cy="18" r="2"></circle><circle cx="7" cy="18" r="2"></circle><path d="M10 10h4"></path><path d="M12 8v4"></path></svg>
             </button>
         </div>
@@ -616,7 +609,7 @@ const MainApp: React.FC = () => {
     {screen === 9 && (
     <section id="screen9" className="screen" style={{'padding': '0', 'background': '#ffffff'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -625,7 +618,7 @@ const MainApp: React.FC = () => {
                 </div>
                 <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
             </div>
-            <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+            <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
         </header>
@@ -676,9 +669,9 @@ const MainApp: React.FC = () => {
                  <div style={{'fontSize': '12px', 'color': '#555'}}><strong>NSS:</strong> <span style={{'color': '#000'}}>{profileData.social || 'No especificado'}</span></div>
             </div>
 
-            <button className="main-btn" onClick={() => { setScreen(18) }} style={{'background': '#8ab6c6', 'width': 'auto', 'padding': '12px 20px', 'fontSize': '11px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.1)', 'marginTop': '20px', 'color': 'white', 'border': 'none', 'display': 'block', 'marginLeft': 'auto', 'marginRight': 'auto'}}>ACTUALIZA<br />TUS DATOS</button>
+            <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { setScreen(18) }} style={{'background': '#8ab6c6', 'width': 'auto', 'padding': '12px 20px', 'fontSize': '11px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.1)', 'marginTop': '20px', 'color': 'white', 'border': 'none', 'display': 'block', 'marginLeft': 'auto', 'marginRight': 'auto'}}>ACTUALIZA<br />TUS DATOS</button>
             
-            <button className="main-btn" onClick={() => { signOut(auth); setScreen(4); }} style={{'background': 'white', 'color': '#ff4d4f', 'border': '2px solid #ff4d4f', 'width': 'auto', 'padding': '10px 20px', 'fontSize': '11px', 'borderRadius': '50px', 'fontWeight': '800', 'marginTop': '15px', 'display': 'block', 'marginLeft': 'auto', 'marginRight': 'auto'}}>CERRAR SESIÓN</button>
+            <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { signOut(auth); setScreen(4); }} style={{'background': 'white', 'color': '#ff4d4f', 'border': '2px solid #ff4d4f', 'width': 'auto', 'padding': '10px 20px', 'fontSize': '11px', 'borderRadius': '50px', 'fontWeight': '800', 'marginTop': '15px', 'display': 'block', 'marginLeft': 'auto', 'marginRight': 'auto'}}>CERRAR SESIÓN</button>
         </div>
 
         <nav className="bottom-nav">
@@ -695,7 +688,7 @@ const MainApp: React.FC = () => {
     {screen === 18 && (
     <section id="screen18" className="screen" style={{'padding': '0', 'background': '#ffffff'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -704,7 +697,7 @@ const MainApp: React.FC = () => {
                 </div>
                 <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
             </div>
-            <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+            <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
         </header>
@@ -784,8 +777,8 @@ const MainApp: React.FC = () => {
             </div>
 
             <div style={{'display': 'flex', 'justifyContent': 'space-between', 'width': '100%', 'marginTop': '30px', 'padding': '0'}}>
-                <button className="main-btn" onClick={() => { setScreen(9) }} style={{'background': '#3a5a6b', 'width': '120px', 'padding': '12px', 'fontSize': '12px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.2)'}}>CANCELAR</button>
-                <button className="main-btn" onClick={() => { handleSaveProfile() }} style={{'background': '#3a5a6b', 'width': '120px', 'padding': '12px', 'fontSize': '12px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.2)'}}>GUARDAR</button>
+                <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { setScreen(9) }} style={{'background': '#3a5a6b', 'width': '120px', 'padding': '12px', 'fontSize': '12px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.2)'}}>CANCELAR</button>
+                <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { handleSaveProfile() }} style={{'background': '#3a5a6b', 'width': '120px', 'padding': '12px', 'fontSize': '12px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.2)'}}>GUARDAR</button>
             </div>
         </div>
 
@@ -803,7 +796,7 @@ const MainApp: React.FC = () => {
     {screen === 10 && (
     <section id="screen10" className="screen" style={{'padding': '0', 'background': '#ffffff'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -812,7 +805,7 @@ const MainApp: React.FC = () => {
                 </div>
                 <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
             </div>
-            <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+            <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
         </header>
@@ -863,7 +856,7 @@ const MainApp: React.FC = () => {
     {screen === 17 && (
     <section id="screen17" className="screen" style={{'padding': '0', 'background': '#ffffff'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setScreen(10) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setScreen(10) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -872,7 +865,7 @@ const MainApp: React.FC = () => {
                 </div>
                 <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
             </div>
-            <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+            <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
         </header>
@@ -896,7 +889,7 @@ const MainApp: React.FC = () => {
                             <span style={{'fontSize': '10px', 'color': '#888'}}>Cerca de ti</span>
                         </div>
                     </div>
-                    <button className="main-btn" style={{'background': '#508ca4', 'padding': '5px 15px', 'borderRadius': '50px', 'width': 'auto', 'margin': '0', 'fontSize': '10px', 'fontWeight': '500'}} onClick={() => window.open('https://maps.google.com/maps?q=hospitales+clinicas', '_blank')}>COMO LLEGAR</button>
+                    <button className="main-btn" aria-label="Botón de acción principal" style={{'background': '#508ca4', 'padding': '5px 15px', 'borderRadius': '50px', 'width': 'auto', 'margin': '0', 'fontSize': '10px', 'fontWeight': '500'}} onClick={() => window.open('https://maps.google.com/maps?q=hospitales+clinicas', '_blank')}>COMO LLEGAR</button>
                 </div>
                 {/*  Interactive Map Container  */}
                 <div id="interactiveMapContainer" style={{'width': '100%', 'height': '150px', 'background': '#e8f0f4', 'position': 'relative', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'cursor': isMapActive ? 'default' : 'pointer'}} onClick={() => { if(!isMapActive) handleActivateMap() }}>
@@ -951,7 +944,7 @@ const MainApp: React.FC = () => {
     {screen === 11 && (
     <section id="screen11" className="screen" style={{'padding': '0', 'background': '#ffffff'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -962,7 +955,7 @@ const MainApp: React.FC = () => {
             </div>
             <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
                 <div style={{'background': 'white', 'color': '#999', 'borderRadius': '50px', 'padding': '2px 8px', 'fontSize': '10px', 'fontWeight': '500'}} id="agendarNameDisplay">@NOMBRE</div>
-                <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+                <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </div>
             </div>
@@ -1093,7 +1086,7 @@ const MainApp: React.FC = () => {
     {screen === 12 && (
     <section id="screen12" className="screen" style={{'padding': '0'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setScreen(8) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -1102,7 +1095,7 @@ const MainApp: React.FC = () => {
                 </div>
                 <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
             </div>
-            <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+            <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
         </header>
@@ -1152,7 +1145,7 @@ const MainApp: React.FC = () => {
     {screen === 13 && (
     <section id="screen13" className="screen" style={{'padding': '0'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setIsMenuOpen(true) }} style={{'opacity': '1'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
@@ -1161,7 +1154,7 @@ const MainApp: React.FC = () => {
                 </div>
                 <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
             </div>
-            <div className="profile-icon-top" style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
+            <div className="profile-icon-top" aria-label="Perfil" role="button" tabIndex={0} style={{'background': 'none', 'border': '2px solid white', 'borderRadius': '50%', 'width': '24px', 'height': '24px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'color': 'white'}} onClick={() => { handleLoadProfile() }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
         </header>
@@ -1191,7 +1184,8 @@ const MainApp: React.FC = () => {
                             <p style={{'margin': '5px 0', 'fontSize': '12px', 'color': '#555'}}><strong>Síntomas:</strong> {appt.symptoms}</p>
                             
                             <div style={{'display': 'flex', 'gap': '10px', 'marginTop': '15px'}}>
-                                <button onClick={() => { cancelAppointment(appt.id) }} style={{'flex': '1', 'background': '#fee2e2', 'color': '#ef4444', 'border': 'none', 'padding': '8px', 'borderRadius': '8px', 'fontSize': '11px', 'fontWeight': 'bold', 'cursor': 'pointer'}}>Cancelar Cita</button>
+                                <button onClick={() => { handleEditAppointment(appt) }} style={{'flex': '1', 'background': '#fef3c7', 'color': '#d97706', 'border': 'none', 'padding': '8px', 'borderRadius': '8px', 'fontSize': '11px', 'fontWeight': 'bold', 'cursor': 'pointer'}} aria-label="Reprogramar cita">Reprogramar</button>
+                                <button onClick={() => { cancelAppointment(appt.id) }} style={{'flex': '1', 'background': '#fee2e2', 'color': '#ef4444', 'border': 'none', 'padding': '8px', 'borderRadius': '8px', 'fontSize': '11px', 'fontWeight': 'bold', 'cursor': 'pointer'}} aria-label="Cancelar Cita">Cancelar Cita</button>
                             </div>
                         </motion.div>
                     ))}
@@ -1211,64 +1205,10 @@ const MainApp: React.FC = () => {
   )}
 
     {/*  TÉRMINOS Y CONDICIONES  */}
-    {screen === 14 && (
-    <section id="screen14" className="screen" style={{'padding': '0'}}>
-        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setScreen(5) }} style={{'opacity': '1'}}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            </button>
-            <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
-                <div style={{'background': '#00d1b2', 'borderRadius': '5px', 'width': '22px', 'height': '22px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'boxShadow': '1px 2px 4px rgba(0,0,0,0.1)'}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                </div>
-                <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
-            </div>
-            <div style={{'width': '28px'}}></div>
-        </header>
-        <div className="content-area" style={{'padding': '70px 20px 80px', 'textAlign': 'left', 'overflowY': 'auto', 'alignItems': 'flex-start'}}>
-            <h3 style={{'color': '#326789', 'fontSize': '16px'}}>TÉRMINOS Y CONDICIONES</h3>
-            <p style={{'fontSize': '11px', 'color': '#555', 'lineHeight': '1.6', 'marginTop': '10px'}}>
-                Bienvenido a CitaCiudadana. Al registrarte y utilizar nuestra plataforma, aceptas los siguientes términos:
-                <br /><br />
-                <strong style={{'color': '#326789'}}>1. Uso del Servicio:</strong><br />La plataforma tiene como fin principal facilitar la agendación de citas médicas y brindar asesoría médica general a través de nuestra IA. No sustituye una consulta médica de emergencia presencial.
-                <br /><br />
-                <strong style={{'color': '#326789'}}>2. Responsabilidad:</strong><br />El usuario es responsable de proveer información verídica y mantener la confidencialidad de su cuenta y contraseña.
-                <br /><br />
-                <strong style={{'color': '#326789'}}>3. Disponibilidad:</strong><br />Las citas están sujetas a la disponibilidad de los especialistas en el momento de la confirmación.
-            </p>
-        </div>
-    </section>
-  )}
+    {screen === 14 && <TermsScreen setScreen={setScreen} />}
 
     {/*  POLÍTICAS DE PRIVACIDAD  */}
-    {screen === 15 && (
-    <section id="screen15" className="screen" style={{'padding': '0'}}>
-        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px'}}>
-            <button className="icon-btn" onClick={() => { setScreen(5) }} style={{'opacity': '1'}}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{'width': '28px', 'height': '28px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            </button>
-            <div className="top-bar-center" style={{'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
-                <div style={{'background': '#00d1b2', 'borderRadius': '5px', 'width': '22px', 'height': '22px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'boxShadow': '1px 2px 4px rgba(0,0,0,0.1)'}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                </div>
-                <h2 style={{'fontWeight': '800', 'margin': '0'}}><span style={{'color': '#2c4251'}}>Cita</span><span style={{'color': '#00d1b2'}}>Ciudadana</span></h2>
-            </div>
-            <div style={{'width': '28px'}}></div>
-        </header>
-        <div className="content-area" style={{'padding': '70px 20px 80px', 'textAlign': 'left', 'overflowY': 'auto', 'alignItems': 'flex-start'}}>
-            <h3 style={{'color': '#326789', 'fontSize': '16px'}}>POLÍTICAS DE PRIVACIDAD</h3>
-            <p style={{'fontSize': '11px', 'color': '#555', 'lineHeight': '1.6', 'marginTop': '10px'}}>
-                En CitaCiudadana nos tomamos muy en serio la protección de tus datos personales e historial médico.
-                <br /><br />
-                <strong style={{'color': '#326789'}}>1. Recopilación de Datos:</strong><br />Solo recopilamos la información necesaria para gestionar tus citas, como tu nombre, correo, CURP y Número de Seguro Social.
-                <br /><br />
-                <strong style={{'color': '#326789'}}>2. Uso de la Información:</strong><br />Tus datos son utilizados exclusivamente para coordinar la atención médica y personalizar tu experiencia.
-                <br /><br />
-                <strong style={{'color': '#326789'}}>3. Seguridad:</strong><br />Implementamos medidas de seguridad para proteger tus datos contra acceso no autorizado.
-            </p>
-        </div>
-    </section>
-  )}
+    {screen === 15 && <PrivacyScreen setScreen={setScreen} />}
 
     {/*  CITA CONFIRMADA  */}
     {screen === 16 && (
@@ -1279,7 +1219,7 @@ const MainApp: React.FC = () => {
         </div>
         <h2 className="page-title">¡CITA AGENDADA!</h2>
         <p style={{'fontWeight': '500', 'fontSize': '14px', 'color': '#555'}}>Tu cita ha sido guardada<br />correctamente.</p>
-        <button className="main-btn" onClick={() => { handleGoToMenu() }} style={{'marginTop': '40px'}}>Volver al Menú</button>
+        <button className="main-btn" aria-label="Botón de acción principal" onClick={() => { handleGoToMenu() }} style={{'marginTop': '40px'}}>Volver al Menú</button>
     </section>
   )}
 
@@ -1287,7 +1227,7 @@ const MainApp: React.FC = () => {
     {screen === 19 && (
     <section id="screen19" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
-            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Configuraciones</h2>
@@ -1368,7 +1308,7 @@ const MainApp: React.FC = () => {
     {screen === 20 && (
     <section id="screen20" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
-            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Accesibilidad</h2>
@@ -1428,7 +1368,7 @@ const MainApp: React.FC = () => {
     {screen === 21 && (
     <section id="screen21" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
-            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Notificaciones</h2>
@@ -1488,7 +1428,7 @@ const MainApp: React.FC = () => {
     {screen === 22 && (
     <section id="screen22" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
         <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
-            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+            <button className="icon-btn" aria-label="Botón de menú o retroceso" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             </button>
             <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Idioma</h2>
@@ -1524,44 +1464,7 @@ const MainApp: React.FC = () => {
   )}
 
     {/*  SOPORTE Y AYUDA  */}
-    {screen === 23 && (
-    <section id="screen23" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
-        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
-            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            </button>
-            <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Soporte / Ayuda</h2>
-            <div style={{'width': '28px'}}></div>
-        </header>
-        <div className="content-area" style={{'padding': '80px 20px 80px', 'textAlign': 'center'}}>
-            
-            <div style={{'background': '#e8f0f4', 'width': '80px', 'height': '80px', 'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'margin': '0 auto 20px'}}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="1.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </div>
-            
-            <h3 style={{'color': '#2c4251', 'fontSize': '18px', 'fontWeight': '800', 'marginBottom': '10px'}}>¿Cómo podemos ayudarte?</h3>
-            <p style={{'color': '#777', 'fontSize': '13px', 'marginBottom': '30px', 'padding': '0 10px'}}>Nuestro equipo está disponible 24/7 para resolver tus dudas sobre la app o sobre las clínicas.</p>
-            
-            <button onClick={() => window.location.href = 'tel:8001234567'} style={{'background': '#326789', 'color': 'white', 'width': '100%', 'padding': '16px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'border': 'none', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px', 'marginBottom': '15px', 'boxShadow': '0 4px 10px rgba(50, 103, 137, 0.2)'}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                Llamar a Servicio al Cliente
-            </button>
-            
-            <button onClick={() => window.location.href = 'mailto:soporte@citaciudadana.com'} style={{'background': 'white', 'color': '#326789', 'border': '2px solid #326789', 'width': '100%', 'padding': '14px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px'}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                Enviar un Correo
-            </button>
-            
-            <div style={{'marginTop': '30px', 'textAlign': 'left'}}>
-                <h4 style={{'color': '#2c4251', 'fontSize': '14px', 'fontWeight': '700', 'marginBottom': '10px'}}>Preguntas Frecuentes</h4>
-                <div style={{'background': 'white', 'borderRadius': '10px', 'padding': '15px', 'border': '1px solid #eee', 'marginBottom': '10px'}}>
-                    <strong style={{'fontSize': '13px', 'color': '#333'}}>¿Cómo cancelar una cita?</strong>
-                    <p style={{'fontSize': '11px', 'color': '#777', 'margin': '5px 0 0'}}>Ve a la sección "Mis Citas", selecciona la cita y presiona Cancelar con 24hrs de anticipación.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-  )}
+    {screen === 23 && <SupportScreen setScreen={setScreen} />}
 
     <div id="toast" style={{'position': 'fixed', 'bottom': '90px', 'left': '50%', 'transform': 'translateX(-50%)', 'background': '#333', 'color': 'white', 'padding': '10px 20px', 'borderRadius': '50px', 'fontSize': '12px', 'display': 'none', 'zIndex': '9999'}}></div>
 
