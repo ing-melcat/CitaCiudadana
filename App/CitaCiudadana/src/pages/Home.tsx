@@ -1,6 +1,5 @@
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButtons, IonMenuButton, IonIcon, IonCard, IonCardContent, IonTabBar, IonTabButton, IonTabs, IonRouterOutlet, IonLabel } from '@ionic/react';
-import { home, calendar, search, list, person, addCircle, calendarOutline } from 'ionicons/icons';
-import { Route, Redirect } from 'react-router';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButtons, IonMenuButton, IonIcon, IonCard, IonCardContent, IonTabBar, IonTabButton } from '@ionic/react';
+import { home, search, list, person, addCircle, calendarOutline } from 'ionicons/icons';
 import './Home.css';
 
 const Home: React.FC = () => {

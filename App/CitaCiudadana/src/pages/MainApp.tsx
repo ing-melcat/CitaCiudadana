@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { IonContent, IonPage } from '@ionic/react';
 import { auth, db } from '../firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithCredential, onAuthStateChanged, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential, onAuthStateChanged, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
-
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import Swal from 'sweetalert2';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { motion, AnimatePresence } from 'framer-motion';
 const MainApp: React.FC = () => {
   useEffect(() => {
     GoogleAuth.initialize({
@@ -23,6 +25,7 @@ const MainApp: React.FC = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [suggestedSpecialty, setSuggestedSpecialty] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [symptoms, setSymptoms] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -41,10 +44,41 @@ const MainApp: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [largeText, setLargeText] = useState(false);
-  const [notifCitas, setNotifCitas] = useState(true);
-  const [notifBot, setNotifBot] = useState(true);
-  const [notifPromo, setNotifPromo] = useState(false);
-  const [appLanguage, setAppLanguage] = useState('es');
+  const [notifCitas, setNotifCitas] = useState(localStorage.getItem('notifCitas') !== 'false');
+  const [notifBot, setNotifBot] = useState(localStorage.getItem('notifBot') !== 'false');
+  const [notifPromo, setNotifPromo] = useState(localStorage.getItem('notifPromo') === 'true');
+  const [appLanguage, setAppLanguage] = useState(localStorage.getItem('appLanguage') || 'es');
+
+  useEffect(() => {
+    if (darkMode) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+  }, [darkMode]);
+
+  useEffect(() => {
+    if (highContrast) document.body.classList.add('high-contrast');
+    else document.body.classList.remove('high-contrast');
+  }, [highContrast]);
+
+  useEffect(() => {
+    try {
+      Haptics.impact({ style: ImpactStyle.Light });
+    } catch {
+      // Ignore if haptics are unavailable
+    }
+  }, [screen]);
+
+
+  useEffect(() => {
+    if (largeText) document.body.classList.add('large-text');
+    else document.body.classList.remove('large-text');
+  }, [largeText]);
+
+  useEffect(() => {
+    localStorage.setItem('notifCitas', String(notifCitas));
+    localStorage.setItem('notifBot', String(notifBot));
+    localStorage.setItem('notifPromo', String(notifPromo));
+    localStorage.setItem('appLanguage', appLanguage);
+  }, [notifCitas, notifBot, notifPromo, appLanguage]);
 
   // Doctor Search states
   const [searchQuery, setSearchQuery] = useState('Odontologo');
@@ -69,6 +103,38 @@ const MainApp: React.FC = () => {
     return () => unsubscribe();
   }, [screen]);
 
+  // Heuristic diagnosis engine
+  useEffect(() => {
+    if (!symptoms) {
+      setSuggestedSpecialty('');
+      return;
+    }
+    const text = symptoms.toLowerCase();
+    let bestMatch = '';
+    let maxWeight = 0;
+
+    const rules = [
+      { specialty: 'Odontologo', keywords: ['diente', 'muela', 'encia', 'dental', 'caries', 'dolor de muela'], weight: 2 },
+      { specialty: 'Psicologo', keywords: ['triste', 'ansiedad', 'depresion', 'estres', 'dormir', 'angustia', 'panico'], weight: 2 },
+      { specialty: 'Pediatra', keywords: ['niño', 'bebe', 'hijo', 'fiebre niño', 'vacuna', 'pediatria'], weight: 2 },
+      { specialty: 'Oculista', keywords: ['ojo', 'vista', 'lentes', 'borroso', 'ceguera', 'ver mal', 'lagañas'], weight: 2 },
+      { specialty: 'Medico General', keywords: ['fiebre', 'dolor de cabeza', 'gripe', 'tos', 'cuerpo cortado', 'malestar', 'nauseas', 'mareo'], weight: 1 }
+    ];
+
+    rules.forEach(rule => {
+      let score = 0;
+      rule.keywords.forEach(kw => {
+        if (text.includes(kw)) score += rule.weight;
+      });
+      if (score > maxWeight) {
+        maxWeight = score;
+        bestMatch = rule.specialty;
+      }
+    });
+
+    setSuggestedSpecialty(bestMatch);
+  }, [symptoms]);
+
   const handleTogglePassword = (id: string) => {
     setPasswordVisible(!passwordVisible);
   };
@@ -86,7 +152,7 @@ const MainApp: React.FC = () => {
       await signInWithCredential(auth, credential);
       setScreen(8);
     } catch (error: any) {
-      alert("Error en Login: " + (error.message || JSON.stringify(error)));
+      Swal.fire('Error', 'Error en Login: ' + (error.message || JSON.stringify(error)), 'error');
       setErrorMsg(error.message);
     }
   };
@@ -163,18 +229,18 @@ const MainApp: React.FC = () => {
         weightHeight: profileData.weightHeight,
         updatedAt: new Date()
       }, { merge: true });
-      alert("Perfil actualizado correctamente");
+      Swal.fire({ title: '¡Éxito!', text: 'Perfil actualizado correctamente.', icon: 'success', confirmButtonColor: '#326789' });
       setScreen(8); // Go back home
     } catch (e) {
       console.error("Error saving profile", e);
-      alert("Error al actualizar perfil");
+      Swal.fire({ title: 'Error', text: 'Error al actualizar el perfil.', icon: 'error', confirmButtonColor: '#326789' });
     }
   };
 
   const saveAppointment = async () => {
     if (!currentUser) return;
     if (!symptoms || !selectedDate) {
-      alert("Por favor ingresa síntomas y selecciona un día");
+      Swal.fire({ title: 'Aviso', text: 'Por favor ingresa los síntomas y selecciona una fecha.', icon: 'warning', confirmButtonColor: '#326789' });
       return;
     }
     try {
@@ -190,7 +256,7 @@ const MainApp: React.FC = () => {
       setScreen(16); // Confirmation screen
     } catch (e) {
       console.error("Error al guardar cita: ", e);
-      alert("Error al agendar cita");
+      Swal.fire({ title: 'Error', text: 'Hubo un problema al agendar la cita. Intenta más tarde.', icon: 'error', confirmButtonColor: '#326789' });
     }
   };
 
@@ -209,14 +275,35 @@ const MainApp: React.FC = () => {
     }
   };
 
+  const cancelAppointment = async (apptId: string) => {
+    Swal.fire({
+      title: '¿Cancelar Cita?',
+      text: 'No podrás revertir esta acción',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#326789',
+      confirmButtonText: 'Sí, cancelar cita',
+      cancelButtonText: 'No, mantenerla'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await deleteDoc(doc(db, "appointments", apptId));
+          setAppointments(appointments.filter(a => a.id !== apptId));
+          Swal.fire({ title: 'Cancelada', text: 'Tu cita ha sido cancelada.', icon: 'success', confirmButtonColor: '#326789' });
+        } catch (e) {
+          console.error("Error al cancelar cita:", e);
+          Swal.fire({ title: 'Error', text: 'No se pudo cancelar la cita. Intenta más tarde.', icon: 'error', confirmButtonColor: '#326789' });
+        }
+      }
+    });
+  };
+
   useEffect(() => {
     if (screen === 13 || screen === 8) {
       loadAppointments();
     }
   }, [screen, currentUser]);
-
-  const analyzeSymptoms = () => { setScreen(17); };
-
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const userMessage = chatInput;
@@ -249,7 +336,7 @@ const MainApp: React.FC = () => {
       setChatMessages(prev => [...prev, { sender: 'ai', text: botReply }]);
     } catch (error: any) {
       console.error("Error al comunicarse con el webhook:", error);
-      alert("Error Fetch: " + error.message);
+      Swal.fire({ title: 'Aviso', text: 'No se pudo conectar con el asistente virtual en este momento.', icon: 'warning', confirmButtonColor: '#326789' });
       setChatMessages(prev => [...prev, { sender: 'ai', text: 'Hubo un problema de conexión con el bot de WhatsApp. Por favor intenta de nuevo.' }]);
     }
   };
@@ -263,8 +350,6 @@ const MainApp: React.FC = () => {
     <IonPage>
       <IonContent fullscreen>
         <div className="app-container">
-          
-<div className="app-container">
     
     {/*  INTRODUCCIÓN 1 (Mujer)  */}
     {screen === 1 && (
@@ -883,53 +968,116 @@ const MainApp: React.FC = () => {
             </div>
         </header>
 
-        <div className="content-area" style={{'padding': '70px 20px 80px'}}>
-            <h2 className="page-title">AGENDAR</h2>
+        <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="content-area" style={{'padding': '80px 20px 90px'}}
+        >
+            <div style={{'marginBottom': '25px'}}>
+                <h2 style={{'fontSize': '24px', 'fontWeight': '800', 'color': '#2c4251', 'margin': '0 0 5px 0', 'letterSpacing': '-0.5px'}}>Agendar</h2>
+                <p style={{'color': '#888', 'margin': '0', 'fontSize': '13px'}}>Dinos qué sientes para sugerirte al mejor especialista.</p>
+            </div>
             
-            <h3 style={{'textAlign': 'left', 'width': '100%', 'fontSize': '13px', 'fontWeight': '800', 'marginBottom': '5px', 'color': '#000'}}>SINTOMAS</h3>
-            <textarea className="textarea-pill" placeholder="Escribe brevemente el malestar..." value={symptoms} onChange={(e) => setSymptoms(e.target.value)} style={{'boxShadow': '2px 2px 6px rgba(0,0,0,0.1)', 'border': '1px solid #e0e0e0', 'height': '80px'}}></textarea>
+            <div style={{'background': 'white', 'borderRadius': '20px', 'boxShadow': '0 8px 24px rgba(0,0,0,0.06)', 'padding': '20px', 'marginBottom': '25px', 'border': '1px solid #f0f4f8'}}>
+                <h3 style={{'textAlign': 'left', 'width': '100%', 'fontSize': '14px', 'fontWeight': '700', 'marginBottom': '10px', 'color': '#2c4251', 'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"></path></svg>
+                    Tus Síntomas
+                </h3>
+                <textarea 
+                    className="textarea-pill" 
+                    placeholder="Ej. Me duele la cabeza y tengo fiebre..." 
+                    value={symptoms} 
+                    onChange={(e) => setSymptoms(e.target.value)} 
+                    style={{'width': '100%', 'background': '#f8fbfc', 'border': '1px solid #e0e8f0', 'borderRadius': '12px', 'padding': '15px', 'fontSize': '14px', 'minHeight': '100px', 'resize': 'none', 'color': '#333', 'transition': 'border-color 0.3s'}}
+                ></textarea>
 
-            <div className="sugerencia-box" style={{'boxShadow': '2px 2px 6px rgba(0,0,0,0.1)', 'border': '1px solid #e0e0e0', 'borderRadius': '15px', 'marginTop': '20px'}}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3a5a6b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg>
-                <div>
-                    <strong style={{'color': '#000', 'fontSize': '13px'}}>Sugerencias</strong><br />
-                    <span style={{'fontSize': '11px', 'color': '#999', 'lineHeight': '1.2', 'display': 'inline-block', 'marginTop': '2px'}}>Te mostrara una sugerencia de a que experto puedes acudir si es necesario.</span>
+                <AnimatePresence>
+                    {suggestedSpecialty && (
+                        <motion.div 
+                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: 15 }}
+                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                            style={{'background': 'linear-gradient(135deg, #e0fcf5 0%, #f0fdf9 100%)', 'border': '1px solid #bcece0', 'borderRadius': '12px', 'padding': '15px', 'display': 'flex', 'alignItems': 'center', 'gap': '12px', 'overflow': 'hidden'}}
+                        >
+                            <div style={{'background': '#00d1b2', 'borderRadius': '50%', 'width': '36px', 'height': '36px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'flexShrink': 0}}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            </div>
+                            <div style={{'flex': 1}}>
+                                <strong style={{'color': '#009b84', 'fontSize': '12px', 'textTransform': 'uppercase', 'letterSpacing': '0.5px'}}>Especialidad Sugerida</strong><br />
+                                <span style={{'color': '#2c4251', 'fontSize': '16px', 'fontWeight': '700'}}>{suggestedSpecialty}</span>
+                            </div>
+                            <button onClick={() => { setSearchQuery(suggestedSpecialty); setScreen(17); }} style={{'background': '#2c4251', 'color': 'white', 'border': 'none', 'borderRadius': '8px', 'padding': '8px 12px', 'fontSize': '12px', 'fontWeight': '600', 'boxShadow': '0 4px 10px rgba(44, 66, 81, 0.2)'}}>
+                                Buscar
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            <div style={{'background': 'white', 'borderRadius': '20px', 'boxShadow': '0 8px 24px rgba(0,0,0,0.06)', 'padding': '20px', 'marginBottom': '25px', 'border': '1px solid #f0f4f8'}}>
+                <h3 style={{'textAlign': 'left', 'width': '100%', 'fontSize': '14px', 'fontWeight': '700', 'marginBottom': '15px', 'color': '#2c4251', 'display': 'flex', 'alignItems': 'center', 'gap': '8px'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    Fecha de Asistencia
+                </h3>
+                
+                <div style={{'background': '#f8fbfc', 'borderRadius': '12px', 'padding': '15px', 'border': '1px solid #e0e8f0'}}>
+                    <div style={{'fontWeight': '700', 'color': '#508ca4', 'fontSize': '13px', 'textAlign': 'center', 'marginBottom': '15px'}}>
+                        OCTUBRE 2025
+                    </div>
+                    <div style={{'display': 'grid', 'gridTemplateColumns': 'repeat(7, 1fr)', 'gap': '8px', 'textAlign': 'center', 'fontSize': '12px', 'color': '#888', 'fontWeight': '600', 'marginBottom': '10px'}}>
+                        <div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div>
+                    </div>
+                    <div style={{'display': 'grid', 'gridTemplateColumns': 'repeat(7, 1fr)', 'gap': '8px', 'textAlign': 'center'}}>
+                        {/* Empty spaces for offset */}
+                        <div></div><div></div><div></div><div></div><div></div><div></div>
+                        {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31].map(d => {
+                            const dateStr = `${d} Oct 2025`;
+                            const isSelected = selectedDate === dateStr;
+                            return (
+                                <motion.div 
+                                    whileTap={{ scale: 0.9 }}
+                                    key={d} 
+                                    onClick={() => setSelectedDate(dateStr)} 
+                                    style={{
+                                        'width': '32px', 'height': '32px', 'margin': '0 auto', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 
+                                        'cursor': 'pointer', 'borderRadius': '50%', 'fontSize': '13px', 'fontWeight': isSelected ? '700' : '500',
+                                        'background': isSelected ? '#00d1b2' : 'transparent', 
+                                        'color': isSelected ? 'white' : '#444',
+                                        'boxShadow': isSelected ? '0 4px 10px rgba(0, 209, 178, 0.4)' : 'none',
+                                        'transition': 'all 0.2s'
+                                    }}
+                                >
+                                    {d}
+                                </motion.div>
+                            )
+                        })}
+                    </div>
                 </div>
             </div>
 
-            <h3 style={{'textAlign': 'left', 'width': '100%', 'marginTop': '20px', 'fontSize': '13px', 'fontWeight': '800', 'marginBottom': '10px', 'color': '#000'}}>ESCOGE EL DIA DE ASISTENCIA</h3>
-            
-            <div style={{'width': '100%', 'background': 'white', 'border': '1px solid #e0e0e0', 'borderRadius': '15px', 'boxShadow': '2px 2px 6px rgba(0,0,0,0.1)', 'padding': '0', 'overflow': 'hidden'}}>
-                <div style={{'background': '#e8f0f4', 'padding': '15px', 'fontWeight': '500', 'color': '#777', 'fontSize': '11px', 'textAlign': 'left'}}>
-                    OCTOBER 2025
-                </div>
-                <table style={{'width': '100%', 'textAlign': 'center', 'fontSize': '11px', 'color': '#555', 'borderCollapse': 'collapse', 'marginBottom': '10px'}}>
-                    <tr style={{'color': '#999', 'height': '30px'}}>
-                        <th>MO</th><th>TU</th><th>WE</th><th>TH</th><th>FR</th><th>SA</th><th>SU</th>
-                    </tr>
-                    <tr style={{'height': '30px'}}><td></td><td></td><td></td><td></td><td></td><td></td><td onClick={() => setSelectedDate('1 Oct 2025')} style={{cursor: 'pointer', background: selectedDate === '1 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '1 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>1</td></tr>
-                    <tr style={{'height': '30px'}}>
-                        <td onClick={() => setSelectedDate('2 Oct 2025')} style={{'position': 'relative', cursor: 'pointer', background: selectedDate === '2 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '2 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>2</td>
-                        <td onClick={() => setSelectedDate('3 Oct 2025')} style={{'position': 'relative', cursor: 'pointer', background: selectedDate === '3 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '3 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>3</td>
-                        <td onClick={() => setSelectedDate('4 Oct 2025')} style={{'position': 'relative', cursor: 'pointer', background: selectedDate === '4 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '4 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>4</td>
-                        <td onClick={() => setSelectedDate('5 Oct 2025')} style={{'position': 'relative', cursor: 'pointer', background: selectedDate === '5 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '5 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>5</td>
-                        <td onClick={() => setSelectedDate('6 Oct 2025')} style={{cursor: 'pointer', background: selectedDate === '6 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '6 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>6</td><td onClick={() => setSelectedDate('7 Oct 2025')} style={{cursor: 'pointer', background: selectedDate === '7 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '7 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>7</td><td onClick={() => setSelectedDate('8 Oct 2025')} style={{cursor: 'pointer', background: selectedDate === '8 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '8 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>8</td>
-                    </tr>
-                    <tr style={{'height': '30px'}}>
-                        {[9,10,11,12,13,14,15].map(d => <td key={d} onClick={() => setSelectedDate(`${d} Oct 2025`)} style={{cursor: 'pointer', background: selectedDate === `${d} Oct 2025` ? '#00d1b2' : 'transparent', color: selectedDate === `${d} Oct 2025` ? 'white' : 'inherit', borderRadius: '5px'}}>{d}</td>)}
-                    </tr>
-                    <tr style={{'height': '30px'}}>
-                        {[16,17,18,19,20,21,22].map(d => <td key={d} onClick={() => setSelectedDate(`${d} Oct 2025`)} style={{cursor: 'pointer', background: selectedDate === `${d} Oct 2025` ? '#00d1b2' : 'transparent', color: selectedDate === `${d} Oct 2025` ? 'white' : 'inherit', borderRadius: '5px'}}>{d}</td>)}
-                    </tr>
-                    <tr style={{'height': '30px'}}>
-                        {[23,24,25,26,27,28,29].map(d => <td key={d} onClick={() => setSelectedDate(`${d} Oct 2025`)} style={{cursor: 'pointer', background: selectedDate === `${d} Oct 2025` ? '#00d1b2' : 'transparent', color: selectedDate === `${d} Oct 2025` ? 'white' : 'inherit', borderRadius: '5px'}}>{d}</td>)}
-                    </tr>
-                    <tr style={{'height': '30px'}}><td onClick={() => setSelectedDate('30 Oct 2025')} style={{cursor: 'pointer', background: selectedDate === '30 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '30 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>30</td><td onClick={() => setSelectedDate('31 Oct 2025')} style={{cursor: 'pointer', background: selectedDate === '31 Oct 2025' ? '#00d1b2' : 'transparent', color: selectedDate === '31 Oct 2025' ? 'white' : 'inherit', borderRadius: '5px'}}>31</td><td></td><td></td><td></td><td></td><td></td></tr>
-                </table>
-            </div>
-
-            <button className="main-btn" onClick={() => { saveAppointment() }} style={{'background': '#3a5a6b', 'width': '120px', 'marginLeft': 'auto', 'display': 'block', 'padding': '12px', 'fontSize': '12px', 'marginTop': '25px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.2)'}}>AGENDAR</button>
-        </div>
+            <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => { saveAppointment() }} 
+                style={{
+                    'background': 'linear-gradient(135deg, #00d1b2 0%, #00a88f 100%)', 
+                    'width': '100%', 
+                    'display': 'block', 
+                    'padding': '16px', 
+                    'fontSize': '15px', 
+                    'borderRadius': '16px', 
+                    'fontWeight': '700', 
+                    'color': 'white',
+                    'border': 'none',
+                    'boxShadow': '0 8px 20px rgba(0, 209, 178, 0.3)',
+                    'cursor': 'pointer',
+                    'letterSpacing': '0.5px'
+                }}
+            >
+                CONFIRMAR CITA
+            </motion.button>
+        </motion.div>
 
         <nav className="bottom-nav">
             <button onClick={() => { setScreen(8) }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></button>
@@ -962,20 +1110,27 @@ const MainApp: React.FC = () => {
         <div className="content-area" style={{'padding': '70px 20px 80px'}}>
             <div id="chatContainer" style={{'width': '100%', 'height': '400px', 'background': '#f9f9f9', 'borderRadius': '15px', 'padding': '15px', 'overflowY': 'auto', 'border': '1px solid #ddd', 'marginBottom': '10px', 'display': 'flex', 'flexDirection': 'column', 'gap': '10px'}}>
                 {chatMessages.length === 0 && <p style={{'color': '#aaa', 'textAlign': 'center', 'marginTop': '20px', 'fontSize': '12px'}}>Cuéntame tus síntomas o dudas de salud para orientarte...</p>}
+                <AnimatePresence>
                 {chatMessages.map((msg, index) => (
-                    <div key={index} style={{
-                        'alignSelf': msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                        'background': msg.sender === 'user' ? '#508ca4' : '#e8f0f4',
-                        'color': msg.sender === 'user' ? 'white' : '#333',
-                        'padding': '10px 15px',
-                        'borderRadius': '15px',
-                        'maxWidth': '80%',
-                        'fontSize': '12px',
-                        'textAlign': 'left'
-                    }}>
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                        key={index} 
+                        style={{
+                            'alignSelf': msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                            'background': msg.sender === 'user' ? '#508ca4' : '#e8f0f4',
+                            'color': msg.sender === 'user' ? 'white' : '#333',
+                            'padding': '10px 15px',
+                            'borderRadius': '15px',
+                            'maxWidth': '80%',
+                            'fontSize': '12px',
+                            'textAlign': 'left'
+                        }}>
                         {msg.text}
-                    </div>
+                    </motion.div>
                 ))}
+                </AnimatePresence>
             </div>
             <div style={{'display': 'flex', 'width': '100%', 'gap': '10px'}}>
                 <input type="text" className="input-pill" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => { if(e.key === 'Enter') handleSendMessage() }} style={{'margin': '0', 'textAlign': 'left'}} placeholder="Describe tus síntomas o dudas..." />
@@ -1019,16 +1174,28 @@ const MainApp: React.FC = () => {
                 <div style={{'textAlign': 'center', 'color': '#999', 'padding': '20px'}}>No tienes citas agendadas aún.</div>
             ) : (
                 <div style={{'display': 'flex', 'flexDirection': 'column', 'gap': '15px'}}>
+                    <AnimatePresence>
                     {appointments.map(appt => (
-                        <div key={appt.id} style={{'background': 'white', 'borderRadius': '15px', 'padding': '15px', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.05)', 'border': '1px solid #f0f0f0', 'textAlign': 'left'}}>
+                        <motion.div 
+                            key={appt.id} 
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.3 }}
+                            style={{'background': 'white', 'borderRadius': '15px', 'padding': '15px', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.05)', 'border': '1px solid #f0f0f0', 'textAlign': 'left', 'position': 'relative'}}>
                             <div style={{'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center', 'marginBottom': '10px'}}>
                                 <strong style={{'color': '#3a5a6b', 'fontSize': '14px'}}>{appt.date}</strong>
                                 <span style={{'background': '#e8f0f4', 'color': '#508ca4', 'padding': '3px 8px', 'borderRadius': '5px', 'fontSize': '10px', 'fontWeight': '500'}}>Confirmada</span>
                             </div>
                             <p style={{'margin': '5px 0', 'fontSize': '12px', 'color': '#555'}}><strong>Doctor:</strong> {appt.doctor}</p>
                             <p style={{'margin': '5px 0', 'fontSize': '12px', 'color': '#555'}}><strong>Síntomas:</strong> {appt.symptoms}</p>
-                        </div>
+                            
+                            <div style={{'display': 'flex', 'gap': '10px', 'marginTop': '15px'}}>
+                                <button onClick={() => { cancelAppointment(appt.id) }} style={{'flex': '1', 'background': '#fee2e2', 'color': '#ef4444', 'border': 'none', 'padding': '8px', 'borderRadius': '8px', 'fontSize': '11px', 'fontWeight': 'bold', 'cursor': 'pointer'}}>Cancelar Cita</button>
+                            </div>
+                        </motion.div>
                     ))}
+                    </AnimatePresence>
                 </div>
             )}
         </div>
@@ -1128,14 +1295,51 @@ const MainApp: React.FC = () => {
         </header>
         <div className="content-area" style={{'padding': '80px 20px 80px', 'textAlign': 'left'}}>
             <div style={{'background': 'white', 'borderRadius': '16px', 'padding': '0', 'border': '1px solid #eee', 'boxShadow': '2px 4px 12px rgba(0,0,0,0.03)'}}>
-                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                <div onClick={() => {
+                  Swal.fire({
+                    title: 'Restablecer Contraseña',
+                    input: 'email',
+                    inputLabel: 'Ingresa tu correo electrónico registrado',
+                    inputPlaceholder: 'correo@ejemplo.com',
+                    inputValue: auth.currentUser?.email || '',
+                    showCancelButton: true,
+                    confirmButtonText: 'Enviar Enlace',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#326789'
+                  }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                      sendPasswordResetEmail(auth, result.value).then(() => {
+                        Swal.fire({
+                          title: '¡Correo Enviado!',
+                          text: `Revisa la bandeja de entrada (y la de SPAM) de ${result.value}.`,
+                          icon: 'success',
+                          confirmButtonColor: '#326789'
+                        });
+                      }).catch((error) => {
+                        Swal.fire({
+                          title: 'Aviso',
+                          text: 'Hubo un problema. Verifica que el correo esté bien escrito o que no hayas iniciado sesión con Google.',
+                          icon: 'warning',
+                          confirmButtonColor: '#326789'
+                        });
+                      });
+                    }
+                  });
+                }} style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
                     <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
                         <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></div>
                         <span style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Cambiar Contraseña</span>
                     </div>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </div>
-                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                <div onClick={() => {
+                  Swal.fire({
+                    title: 'Privacidad y Seguridad',
+                    text: 'Tus datos están protegidos y encriptados bajo las normas más estrictas de seguridad.',
+                    icon: 'info',
+                    confirmButtonColor: '#326789'
+                  });
+                }} style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
                     <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
                         <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
                         <span style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Privacidad y Seguridad</span>
@@ -1338,12 +1542,12 @@ const MainApp: React.FC = () => {
             <h3 style={{'color': '#2c4251', 'fontSize': '18px', 'fontWeight': '800', 'marginBottom': '10px'}}>¿Cómo podemos ayudarte?</h3>
             <p style={{'color': '#777', 'fontSize': '13px', 'marginBottom': '30px', 'padding': '0 10px'}}>Nuestro equipo está disponible 24/7 para resolver tus dudas sobre la app o sobre las clínicas.</p>
             
-            <button style={{'background': '#326789', 'color': 'white', 'width': '100%', 'padding': '16px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'border': 'none', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px', 'marginBottom': '15px', 'boxShadow': '0 4px 10px rgba(50, 103, 137, 0.2)'}}>
+            <button onClick={() => window.location.href = 'tel:8001234567'} style={{'background': '#326789', 'color': 'white', 'width': '100%', 'padding': '16px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'border': 'none', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px', 'marginBottom': '15px', 'boxShadow': '0 4px 10px rgba(50, 103, 137, 0.2)'}}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                 Llamar a Servicio al Cliente
             </button>
             
-            <button style={{'background': 'white', 'color': '#326789', 'border': '2px solid #326789', 'width': '100%', 'padding': '14px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px'}}>
+            <button onClick={() => window.location.href = 'mailto:soporte@citaciudadana.com'} style={{'background': 'white', 'color': '#326789', 'border': '2px solid #326789', 'width': '100%', 'padding': '14px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px'}}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                 Enviar un Correo
             </button>
@@ -1405,8 +1609,6 @@ const MainApp: React.FC = () => {
             </div>
           </div>
         )}
-
-        </div>
       </IonContent>
     </IonPage>
   );
