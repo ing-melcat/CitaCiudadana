@@ -37,6 +37,15 @@ const MainApp: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<{sender: string, text: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
 
+  // Settings & Menu States
+  const [darkMode, setDarkMode] = useState(false);
+  const [highContrast, setHighContrast] = useState(false);
+  const [largeText, setLargeText] = useState(false);
+  const [notifCitas, setNotifCitas] = useState(true);
+  const [notifBot, setNotifBot] = useState(true);
+  const [notifPromo, setNotifPromo] = useState(false);
+  const [appLanguage, setAppLanguage] = useState('es');
+
   // Doctor Search states
   const [searchQuery, setSearchQuery] = useState('Odontologo');
   const allDoctors = [
@@ -583,6 +592,8 @@ const MainApp: React.FC = () => {
             </div>
 
             <button className="main-btn" onClick={() => { setScreen(18) }} style={{'background': '#8ab6c6', 'width': 'auto', 'padding': '12px 20px', 'fontSize': '11px', 'borderRadius': '50px', 'fontWeight': '500', 'boxShadow': '2px 4px 10px rgba(0,0,0,0.1)', 'marginTop': '20px', 'color': 'white', 'border': 'none', 'display': 'block', 'marginLeft': 'auto', 'marginRight': 'auto'}}>ACTUALIZA<br />TUS DATOS</button>
+            
+            <button className="main-btn" onClick={() => { signOut(auth); setScreen(4); }} style={{'background': 'white', 'color': '#ff4d4f', 'border': '2px solid #ff4d4f', 'width': 'auto', 'padding': '10px 20px', 'fontSize': '11px', 'borderRadius': '50px', 'fontWeight': '800', 'marginTop': '15px', 'display': 'block', 'marginLeft': 'auto', 'marginRight': 'auto'}}>CERRAR SESIÓN</button>
         </div>
 
         <nav className="bottom-nav">
@@ -1105,7 +1116,251 @@ const MainApp: React.FC = () => {
     </section>
   )}
 
+    {/*  CONFIGURACIONES  */}
+    {screen === 19 && (
+    <section id="screen19" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
+        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
+            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Configuraciones</h2>
+            <div style={{'width': '28px'}}></div>
+        </header>
+        <div className="content-area" style={{'padding': '80px 20px 80px', 'textAlign': 'left'}}>
+            <div style={{'background': 'white', 'borderRadius': '16px', 'padding': '0', 'border': '1px solid #eee', 'boxShadow': '2px 4px 12px rgba(0,0,0,0.03)'}}>
+                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg></div>
+                        <span style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Cambiar Contraseña</span>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+                        <span style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Privacidad y Seguridad</span>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <div onClick={() => { setScreen(14) }} style={{'padding': '18px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
+                        <span style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Términos de Servicio</span>
+                    </div>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+            </div>
+            
+            <div style={{'marginTop': '30px', 'textAlign': 'center'}}>
+                <button onClick={() => { signOut(auth); setScreen(4); }} style={{'background': 'transparent', 'border': '1px solid #ff4d4f', 'color': '#ff4d4f', 'padding': '12px 30px', 'borderRadius': '25px', 'fontWeight': '800', 'fontSize': '13px', 'boxShadow': '0 2px 8px rgba(255, 77, 79, 0.2)'}}>
+                    CERRAR SESIÓN
+                </button>
+            </div>
+        </div>
+    </section>
+  )}
+
+    {/*  ACCESIBILIDAD  */}
+    {screen === 20 && (
+    <section id="screen20" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
+        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
+            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Accesibilidad</h2>
+            <div style={{'width': '28px'}}></div>
+        </header>
+        <div className="content-area" style={{'padding': '80px 20px 80px', 'textAlign': 'left'}}>
+            <p style={{'color': '#777', 'fontSize': '12px', 'marginBottom': '20px'}}>Ajusta la apariencia de la aplicación para que sea más fácil de usar.</p>
+            
+            <div style={{'background': 'white', 'borderRadius': '16px', 'padding': '0', 'border': '1px solid #eee', 'boxShadow': '2px 4px 12px rgba(0,0,0,0.03)'}}>
+                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></div>
+                        <div>
+                            <div style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Modo Oscuro</div>
+                            <div style={{'fontSize': '10px', 'color': '#999'}}>Activa el tema oscuro en toda la app</div>
+                        </div>
+                    </div>
+                    <label className="toggle-switch">
+                        <input type="checkbox" checked={darkMode} onChange={() => setDarkMode(!darkMode)} />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+                
+                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
+                        <div>
+                            <div style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Alto Contraste</div>
+                            <div style={{'fontSize': '10px', 'color': '#999'}}>Mejora la legibilidad de textos</div>
+                        </div>
+                    </div>
+                    <label className="toggle-switch">
+                        <input type="checkbox" checked={highContrast} onChange={() => setHighContrast(!highContrast)} />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+
+                <div style={{'padding': '18px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg></div>
+                        <div>
+                            <div style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Textos Más Grandes</div>
+                            <div style={{'fontSize': '10px', 'color': '#999'}}>Aumenta el tamaño de la fuente</div>
+                        </div>
+                    </div>
+                    <label className="toggle-switch">
+                        <input type="checkbox" checked={largeText} onChange={() => setLargeText(!largeText)} />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </section>
+  )}
+
+    {/*  NOTIFICACIONES  */}
+    {screen === 21 && (
+    <section id="screen21" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
+        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
+            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Notificaciones</h2>
+            <div style={{'width': '28px'}}></div>
+        </header>
+        <div className="content-area" style={{'padding': '80px 20px 80px', 'textAlign': 'left'}}>
+            <p style={{'color': '#777', 'fontSize': '12px', 'marginBottom': '20px'}}>Elige qué tipo de alertas quieres recibir en tu dispositivo.</p>
+            
+            <div style={{'background': 'white', 'borderRadius': '16px', 'padding': '0', 'border': '1px solid #eee', 'boxShadow': '2px 4px 12px rgba(0,0,0,0.03)'}}>
+                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div>
+                        <div>
+                            <div style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Recordatorios de Citas</div>
+                            <div style={{'fontSize': '10px', 'color': '#999'}}>Alertas antes de tu consulta</div>
+                        </div>
+                    </div>
+                    <label className="toggle-switch">
+                        <input type="checkbox" checked={notifCitas} onChange={() => setNotifCitas(!notifCitas)} />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+                
+                <div style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg></div>
+                        <div>
+                            <div style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Mensajes de la IA (Bot)</div>
+                            <div style={{'fontSize': '10px', 'color': '#999'}}>Actualizaciones por WhatsApp</div>
+                        </div>
+                    </div>
+                    <label className="toggle-switch">
+                        <input type="checkbox" checked={notifBot} onChange={() => setNotifBot(!notifBot)} />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+
+                <div style={{'padding': '18px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <div style={{'background': '#e8f0f4', 'padding': '8px', 'borderRadius': '10px'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#508ca4" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></div>
+                        <div>
+                            <div style={{'fontWeight': '600', 'color': '#333', 'fontSize': '14px'}}>Promociones de Salud</div>
+                            <div style={{'fontSize': '10px', 'color': '#999'}}>Ofertas de clínicas afiliadas</div>
+                        </div>
+                    </div>
+                    <label className="toggle-switch">
+                        <input type="checkbox" checked={notifPromo} onChange={() => setNotifPromo(!notifPromo)} />
+                        <span className="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </section>
+  )}
+
+    {/*  IDIOMA  */}
+    {screen === 22 && (
+    <section id="screen22" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
+        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
+            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Idioma</h2>
+            <div style={{'width': '28px'}}></div>
+        </header>
+        <div className="content-area" style={{'padding': '80px 20px 80px', 'textAlign': 'left'}}>
+            
+            <div style={{'background': 'white', 'borderRadius': '16px', 'padding': '0', 'border': '1px solid #eee', 'boxShadow': '2px 4px 12px rgba(0,0,0,0.03)'}}>
+                <div onClick={() => setAppLanguage('es')} style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <span style={{'fontSize': '20px'}}>🇲🇽</span>
+                        <span style={{'fontWeight': '600', 'color': appLanguage === 'es' ? '#326789' : '#333', 'fontSize': '14px'}}>Español (México)</span>
+                    </div>
+                    {appLanguage === 'es' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                </div>
+                <div onClick={() => setAppLanguage('en')} style={{'padding': '18px', 'borderBottom': '1px solid #eee', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <span style={{'fontSize': '20px'}}>🇺🇸</span>
+                        <span style={{'fontWeight': '600', 'color': appLanguage === 'en' ? '#326789' : '#333', 'fontSize': '14px'}}>English (US)</span>
+                    </div>
+                    {appLanguage === 'en' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                </div>
+                <div onClick={() => setAppLanguage('fr')} style={{'padding': '18px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'cursor': 'pointer'}}>
+                    <div style={{'display': 'flex', 'alignItems': 'center', 'gap': '12px'}}>
+                        <span style={{'fontSize': '20px'}}>🇫🇷</span>
+                        <span style={{'fontWeight': '600', 'color': appLanguage === 'fr' ? '#326789' : '#333', 'fontSize': '14px'}}>Français</span>
+                    </div>
+                    {appLanguage === 'fr' && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00d1b2" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                </div>
+            </div>
+        </div>
+    </section>
+  )}
+
+    {/*  SOPORTE Y AYUDA  */}
+    {screen === 23 && (
+    <section id="screen23" className="screen" style={{'padding': '0', 'background': '#fdfdfd'}}>
+        <header className="top-bar" style={{'height': '60px', 'padding': '0 15px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}}>
+            <button className="icon-btn" onClick={() => { setScreen(8) }} style={{'opacity': '1', 'background': 'transparent'}}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{'width': '26px', 'height': '26px'}}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <h2 style={{'fontWeight': '800', 'margin': '0', 'color': '#2c4251', 'fontSize': '18px'}}>Soporte / Ayuda</h2>
+            <div style={{'width': '28px'}}></div>
+        </header>
+        <div className="content-area" style={{'padding': '80px 20px 80px', 'textAlign': 'center'}}>
+            
+            <div style={{'background': '#e8f0f4', 'width': '80px', 'height': '80px', 'borderRadius': '50%', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'margin': '0 auto 20px'}}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="1.5"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            
+            <h3 style={{'color': '#2c4251', 'fontSize': '18px', 'fontWeight': '800', 'marginBottom': '10px'}}>¿Cómo podemos ayudarte?</h3>
+            <p style={{'color': '#777', 'fontSize': '13px', 'marginBottom': '30px', 'padding': '0 10px'}}>Nuestro equipo está disponible 24/7 para resolver tus dudas sobre la app o sobre las clínicas.</p>
+            
+            <button style={{'background': '#326789', 'color': 'white', 'width': '100%', 'padding': '16px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'border': 'none', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px', 'marginBottom': '15px', 'boxShadow': '0 4px 10px rgba(50, 103, 137, 0.2)'}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                Llamar a Servicio al Cliente
+            </button>
+            
+            <button style={{'background': 'white', 'color': '#326789', 'border': '2px solid #326789', 'width': '100%', 'padding': '14px', 'borderRadius': '12px', 'fontWeight': '600', 'fontSize': '14px', 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'center', 'gap': '10px'}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#326789" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                Enviar un Correo
+            </button>
+            
+            <div style={{'marginTop': '30px', 'textAlign': 'left'}}>
+                <h4 style={{'color': '#2c4251', 'fontSize': '14px', 'fontWeight': '700', 'marginBottom': '10px'}}>Preguntas Frecuentes</h4>
+                <div style={{'background': 'white', 'borderRadius': '10px', 'padding': '15px', 'border': '1px solid #eee', 'marginBottom': '10px'}}>
+                    <strong style={{'fontSize': '13px', 'color': '#333'}}>¿Cómo cancelar una cita?</strong>
+                    <p style={{'fontSize': '11px', 'color': '#777', 'margin': '5px 0 0'}}>Ve a la sección "Mis Citas", selecciona la cita y presiona Cancelar con 24hrs de anticipación.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+  )}
+
     <div id="toast" style={{'position': 'fixed', 'bottom': '90px', 'left': '50%', 'transform': 'translateX(-50%)', 'background': '#333', 'color': 'white', 'padding': '10px 20px', 'borderRadius': '50px', 'fontSize': '12px', 'display': 'none', 'zIndex': '9999'}}></div>
+
 
 </div>
 
@@ -1123,24 +1378,24 @@ const MainApp: React.FC = () => {
                 <p style={{margin: '5px 0 0', fontSize: '14px', opacity: 0.9}}>{profileData?.name || 'CitaCiudadana'}</p>
               </div>
               <div style={{display: 'flex', flexDirection: 'column', padding: '10px 0', overflowY: 'auto', flex: 1}}>
-                <div style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '16px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px'}} onClick={() => { setIsMenuOpen(false); alert('Próximamente: Configuraciones'); }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <div className="menu-item" style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '15px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'background 0.2s'}} onClick={() => { setIsMenuOpen(false); setScreen(19); }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                   Configuraciones
                 </div>
-                <div style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '16px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px'}} onClick={() => { setIsMenuOpen(false); alert('Próximamente: Accesibilidad'); }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                <div className="menu-item" style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '15px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'background 0.2s'}} onClick={() => { setIsMenuOpen(false); setScreen(20); }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
                   Accesibilidad
                 </div>
-                <div style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '16px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px'}} onClick={() => { setIsMenuOpen(false); alert('Próximamente: Notificaciones'); }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <div className="menu-item" style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '15px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'background 0.2s'}} onClick={() => { setIsMenuOpen(false); setScreen(21); }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                   Notificaciones
                 </div>
-                <div style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '16px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px'}} onClick={() => { setIsMenuOpen(false); alert('Próximamente: Idioma'); }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <div className="menu-item" style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '15px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'background 0.2s'}} onClick={() => { setIsMenuOpen(false); setScreen(22); }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
                   Idioma
                 </div>
-                <div style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '16px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px'}} onClick={() => { setIsMenuOpen(false); alert('Próximamente: Soporte / Ayuda'); }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <div className="menu-item" style={{padding: '15px 20px', borderBottom: '1px solid #f0f0f0', fontWeight: 'bold', fontSize: '15px', color: '#2c4251', display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', transition: 'background 0.2s'}} onClick={() => { setIsMenuOpen(false); setScreen(23); }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                   Soporte / Ayuda
                 </div>
               </div>
